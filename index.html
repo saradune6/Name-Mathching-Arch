@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Name Matching Pipeline — Flow Diagram</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #ffffff;
+    color: #1a1a2e;
+    font-family: 'DM Sans', sans-serif;
+    padding: 48px 32px 80px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  header h1 { font-size: 26px; font-weight: 600; color: #1a1a2e; letter-spacing: -0.3px; }
+  header p  { margin-top: 6px; color: #6b7280; font-size: 13px; }
+  .badge {
+    display: inline-block;
+    background: #f0effe; border: 1px solid #c4b5fd; color: #6d28d9;
+    font-size: 11px; font-family: 'DM Mono', monospace;
+    padding: 3px 12px; border-radius: 20px; margin-top: 10px;
+  }
+
+  /* ── Two-column wrapper ── */
+  .flow-wrap {
+    display: flex;
+    align-items: flex-start;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  /* ── Main flow column ── */
+  .flow-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+  }
+
+  /* ── Notes sidebar ── */
+  .notes-col {
+    width: 210px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Generic node ── */
+  .node {
+    border-radius: 10px;
+    padding: 11px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: center;
+    border: 1.5px solid;
+    width: 100%;
+  }
+  .node-start {
+    background:#f3f4f6; border-color:#d1d5db; color:#6b7280;
+    border-radius:30px; max-width:140px; font-size:13px;
+  }
+  .node-input  { background:#eff6ff; border-color:#93c5fd; color:#1d4ed8; max-width:360px; }
+  .node-preproc{ background:#fffbeb; border-color:#fcd34d; color:#92400e; max-width:280px; font-size:13px; }
+  .node-main   { background:#f0fdfa; border-color:#5eead4; color:#0f766e; max-width:380px; font-size:13px; }
+  .node-pass   { background:#f0fdf4; border-color:#86efac; color:#15803d; max-width:130px; font-weight:600; font-size:13px; }
+  .node-fail   { background:#fef2f2; border-color:#fca5a5; color:#b91c1c; max-width:130px; font-weight:600; font-size:13px; }
+  .node-final-pass { background:#f0fdf4; border-color:#86efac; color:#15803d; max-width:150px; border-radius:30px; font-weight:600; font-size:13px; }
+  .node-final-fail { background:#fef2f2; border-color:#fca5a5; color:#b91c1c; max-width:150px; border-radius:30px; font-weight:600; font-size:13px; }
+
+  /* ── Vertical arrows ── */
+  .arr {
+    width:2px; background:#d1d5db; position:relative; align-self:center; flex-shrink:0;
+  }
+  .arr::after {
+    content:''; position:absolute; bottom:-1px; left:50%; transform:translateX(-50%);
+    border-left:5px solid transparent; border-right:5px solid transparent; border-top:7px solid #9ca3af;
+  }
+  .h24 { height:24px; }
+  .h40 { height:40px; }
+  .h56 { height:56px; }
+  .h80 { height:80px; }
+
+  /* ── Layer containers ── */
+  .layer {
+    width:100%; max-width:520px;
+    border:1.5px dashed #d1d5db; border-radius:14px;
+    padding:26px 18px 20px; position:relative;
+    background:#fafafa;
+  }
+  .layer-label {
+    position:absolute; top:-13px; left:14px;
+    display:flex; align-items:center; gap:8px;
+    background:#fafafa; padding:0 6px;
+  }
+  .layer-badge {
+    background:#f0effe; border:1.5px solid #c4b5fd; color:#6d28d9;
+    font-size:11px; font-family:'DM Mono',monospace; font-weight:500;
+    padding:2px 10px; border-radius:20px;
+  }
+  .layer-title { font-size:11px; color:#9ca3af; }
+  .layer-inner { display:flex; flex-direction:column; align-items:center; gap:12px; }
+
+  /* ── Formula box ── */
+  .formula-box {
+    background:#fffbeb; border:1.5px solid #fcd34d; border-radius:8px;
+    padding:10px 14px; font-family:'DM Mono',monospace; font-size:11.5px;
+    color:#92400e; text-align:center; line-height:1.7; width:100%;
+  }
+  .formula-box .flabel {
+    font-size:10px; color:#b45309; font-family:'DM Sans',sans-serif;
+    font-weight:600; text-transform:uppercase; letter-spacing:0.5px;
+    margin-bottom:4px; display:block;
+  }
+
+  /* ── Sim boxes ── */
+  .sim-row { display:flex; gap:8px; width:100%; }
+  .sim-box {
+    background:#eff6ff; border:1.5px solid #93c5fd; color:#1d4ed8;
+    border-radius:8px; padding:9px 10px; font-size:12px; font-weight:500;
+    text-align:center; flex:1;
+  }
+  .sim-box .sub {
+    font-size:10px; font-family:'DM Mono',monospace; color:#2563eb;
+    margin-top:3px; display:block; font-weight:400;
+  }
+
+  /* ── Branch ── */
+  .branch-wrap { width:100%; display:flex; flex-direction:column; align-items:center; }
+  .branch-stem { width:2px; height:18px; background:#d1d5db; }
+  .branch-bar  { width:280px; height:2px; background:#d1d5db; }
+  .branch-labels { width:280px; display:flex; justify-content:space-between; margin-top:4px; }
+  .score-pass { color:#15803d; font-size:11px; font-weight:600; }
+  .score-fail { color:#b91c1c; font-size:11px; font-weight:600; }
+  .branch-arms { width:280px; display:flex; justify-content:space-between; margin-top:0; }
+  .branch-arm  { display:flex; flex-direction:column; align-items:center; }
+  .arm-line    { width:2px; height:18px; }
+  .arm-pass    { background:#86efac; }
+  .arm-fail    { background:#fca5a5; }
+
+  .divider { width:80%; height:1px; background:#e5e7eb; margin:2px auto; }
+
+  /* ── Note boxes ── */
+  .note-box {
+    background:#f9fafb; border:1px dashed #e5e7eb; border-radius:8px;
+    padding:10px 12px; font-size:10.5px; font-family:'DM Mono',monospace;
+    color:#6b7280; line-height:1.85; margin-left:12px;
+  }
+  .note-label {
+    font-size:10px; font-family:'DM Sans',sans-serif; font-weight:600;
+    color:#9ca3af; text-transform:uppercase; letter-spacing:0.4px;
+    margin-bottom:5px; display:block;
+  }
+  .note-row { display:flex; align-items:flex-start; }
+  .note-tick { width:16px; border-top:1px dashed #d1d5db; margin-top:14px; flex-shrink:0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Name Matching Pipeline</h1>
+  <p>Three-layer fuzzy + semantic deduplication system</p>
+  <div class="badge">Interview Ready · Flow Diagram</div>
+</header>
+
+<div class="flow-wrap">
+
+  <!-- ══ MAIN FLOW ══ -->
+  <div class="flow-col">
+
+    <!-- Start -->
+    <div class="node node-start">Start</div>
+    <div class="arr h24"></div>
+
+    <!-- Input -->
+    <div class="node node-input">Input: Name1 and Name2</div>
+    <div class="arr h24"></div>
+
+    <!-- Pre-processing 1 -->
+    <div class="node node-preproc">Data pre-processing</div>
+    <div class="arr h24"></div>
+
+    <!-- L1 -->
+    <div class="layer">
+      <div class="layer-label">
+        <span class="layer-badge">L1</span>
+        <span class="layer-title">FuzzyWuzzy — fast filter</span>
+      </div>
+      <div class="layer-inner">
+        <div class="node node-main">FuzzyWuzzy</div>
+        <div class="formula-box">
+          <span class="flabel">Scoring formula</span>
+          (fuzzy_ratio + fuzzy_partial_ratio + token_set_ratio) / 3.0
+        </div>
+        <div class="branch-wrap">
+          <div class="branch-stem"></div>
+          <div class="branch-bar"></div>
+          <div class="branch-labels">
+            <span class="score-pass">Score ≥ 75</span>
+            <span class="score-fail">Score &lt; 75</span>
+          </div>
+          <div class="branch-arms">
+            <div class="branch-arm">
+              <div class="arm-line arm-pass"></div>
+              <div class="node node-pass">✓ Pass</div>
+            </div>
+            <div class="branch-arm">
+              <div class="arm-line arm-fail"></div>
+              <div class="node node-fail">✗ Fail</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Long gap then Pre-processing 2 -->
+    <div class="arr h80"></div>
+    <div class="node node-preproc">Data pre-processing</div>
+    <div class="arr h56"></div>
+
+    <!-- L2 -->
+    <div class="layer">
+      <div class="layer-label">
+        <span class="layer-badge">L2</span>
+        <span class="layer-title">Semantic similarity</span>
+      </div>
+      <div class="layer-inner">
+        <div class="sim-row">
+          <div class="sim-box">
+            Embedding model
+            <span class="sub">Fine-tuned BERT</span>
+          </div>
+          <div class="sim-box">Phonetic<br/>similarity</div>
+          <div class="sim-box">Jaccard<br/>similarity</div>
+        </div>
+        <div class="divider"></div>
+        <div class="formula-box">
+          <span class="flabel">Weight assignment &amp; final scoring</span>
+          final_score = (embedding × 0.40) + (phonetic × 0.30) + (jaccard × 0.30)
+        </div>
+        <div class="branch-wrap">
+          <div class="branch-stem"></div>
+          <div class="branch-bar"></div>
+          <div class="branch-labels">
+            <span class="score-pass">Score ≥ 65</span>
+            <span class="score-fail">Score &lt; 65</span>
+          </div>
+          <div class="branch-arms">
+            <div class="branch-arm">
+              <div class="arm-line arm-pass"></div>
+              <div class="node node-pass">✓ Pass</div>
+            </div>
+            <div class="branch-arm">
+              <div class="arm-line arm-fail"></div>
+              <div class="node node-fail">✗ Fail</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Long gap then Pre-processing 3 -->
+    <div class="arr h80"></div>
+    <div class="node node-preproc">Data pre-processing</div>
+    <div class="arr h56"></div>
+
+    <!-- L3 -->
+    <div class="layer">
+      <div class="layer-label">
+        <span class="layer-badge">L3</span>
+        <span class="layer-title">Fuzzy + keyword matching — last resort</span>
+      </div>
+      <div class="layer-inner">
+        <div class="node node-main" style="max-width:100%;font-size:12.5px">
+          FuzzyWuzzy with few pre-processing &amp; keyword matching
+        </div>
+        <div class="formula-box">
+          <span class="flabel">Scoring formula</span>
+          (fuzzy_ratio + fuzzy_partial_ratio + token_set_ratio +) / 3.0
+        </div>
+        <div class="branch-wrap">
+          <div class="branch-stem"></div>
+          <div class="branch-bar"></div>
+          <div class="branch-labels">
+            <span class="score-pass">Score ≥ 65</span>
+            <span class="score-fail">Score &lt; 65</span>
+          </div>
+          <div class="branch-arms">
+            <div class="branch-arm">
+              <div class="arm-line arm-pass"></div>
+              <div class="node node-pass">✓ Pass</div>
+            </div>
+            <div class="branch-arm">
+              <div class="arm-line arm-fail"></div>
+              <div class="node node-fail">✗ Fail</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arr h40"></div>
+
+    <!-- Final outputs -->
+    <div style="display:flex;gap:80px;justify-content:center;width:100%">
+      <div class="node node-final-pass">Match ✓</div>
+      <div class="node node-final-fail">No match ✗</div>
+    </div>
+
+  </div><!-- end flow-col -->
+
+  <!-- ══ NOTES SIDEBAR ══ -->
+  <!--
+    Heights to match:
+    start(36) + arr(24) + input(43) + arr(24) = 127px → note sits beside pre-proc 1
+    arr(24) + L1(~220px) + arr(80) = 324px → note sits beside pre-proc 2
+    arr(56) + L2(~240px) + arr(80) = 376px → note sits beside pre-proc 3
+  -->
+  <div class="notes-col">
+
+    <!-- Note 1: beside Pre-processing 1 -->
+    <div style="height:127px;flex-shrink:0"></div>
+    <div class="note-row">
+      <div class="note-tick"></div>
+      <div class="note-box">
+        <span class="note-label">Basic methods</span>
+        convert_to_lower<br/>
+        remove_salutations<br/>
+        remove_parent_spouse_name<br/>
+        remove_stop_words<br/>
+        remove_extra_spaces
+      </div>
+    </div>
+
+    <!-- Note 2: beside Pre-processing 2 -->
+    <!-- L1 layer visual height = label(26) + padding(26+20) + node(43) + formula(~56) + branch(~96) = ~267; plus arr(24) = 291 -->
+    <div style="height:315px;flex-shrink:0"></div>
+    <div class="note-row">
+      <div class="note-tick"></div>
+      <div class="note-box">
+        <span class="note-label">Deeper methods + regex</span>
+        remove_salutations<br/>
+        remove_parent_spouse<br/>
+        remove_muslim_variations<br/>
+        remove_agarwal_variants<br/>
+        convert_to_lower<br/>
+        replace_adjacent_duplicates<br/>
+        replace_characters<br/>
+        replace_bigrams<br/>
+        remove_consonant_a<br/>
+        remove_special_characters<br/>
+        remove_extra_spaces<br/>
+        remove_stop_words
+      </div>
+    </div>
+
+    <!-- Note 3: beside Pre-processing 3 -->
+    <!-- L2 layer ~280 + arr(56) = 336 -->
+    <div style="height:392px;flex-shrink:0"></div>
+    <div class="note-row">
+      <div class="note-tick"></div>
+      <div class="note-box">
+        <span class="note-label">L3 pre-processing</span>
+        convert_to_lower<br/>
+        remove_salutations<br/>
+        remove_parent_spouse_name<br/>
+        remove_stop_words<br/>
+        remove_extra_spaces
+      </div>
+    </div>
+
+  </div><!-- end notes-col -->
+
+</div><!-- end flow-wrap -->
+
+</body>
+</html>
